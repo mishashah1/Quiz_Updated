@@ -295,7 +295,7 @@ class QuizManager:
 class QuestionGenerator:
     def __init__(self):
         self.llm = ChatGroq(
-            api_key=os.getenv('GROQ_API_KEY'), 
+            api_key=st.secrets["groq_api_key"], 
             model="llama-3.1-8b-instant",
             temperature=0.9
         )
