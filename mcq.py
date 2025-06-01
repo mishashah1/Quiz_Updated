@@ -367,9 +367,6 @@ with content_col:
         st.markdown(f'''
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <h2 style="margin: 0;">{display_topic} Quiz</h2>
-            <div style="background-color: #e0f2fe; color: #0369a1; font-weight: 600; padding: 5px 12px; border-radius: 20px; font-size: 0.9rem;">
-                {difficulty} Level
-            </div>
         </div>
         <p>Complete all {num_questions} questions and submit your answers. For multiple choice questions, select exactly one option.</p>
         <div style="height: 3px; width: 100px; background: linear-gradient(90deg, #3b82f6, #93c5fd); margin: 15px 0;"></div>
