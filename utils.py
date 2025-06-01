@@ -8,8 +8,7 @@ from langchain.prompts import PromptTemplate
 from langchain.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field, validator
 
-# Load environment variables from .env file
-load_dotenv()
+groq_api_key = st.secrets["groq_api_key"]
 
 # Define data model for Multiple Choice Questions using Pydantic
 class MCQQuestion(BaseModel):
@@ -358,7 +357,7 @@ class QuizManager:
 class QuestionGenerator:
     def __init__(self):
         self.llm = ChatGroq(
-            api_key=os.getenv('GROQ_API_KEY'), 
+            api_key=st.secrets["groq_api_key"],  # Read from Streamlit secrets, 
             model="llama-3.1-8b-instant",
             temperature=0.9
         )
