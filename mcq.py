@@ -292,6 +292,13 @@ with st.sidebar:
             module = "T2"
             topic = "Modules 4-5"
 
+        difficulty = "Medium"  # default difficulty for QuanBank, or unused if QuanBank ignores it
+         # Set fixed number of questions for QuanBank
+        num_questions = 100
+        # Optionally show a message about fixed number of questions
+        st.markdown('<p style="color: #a0aec0; margin-top: 10px;">Number of questions is fixed at 100 for QuanBank.</p>', unsafe_allow_html=True)
+
+
         #topic = f"Module {module}" if module else "Module-Based"
     else:
         # Quiz configuration for AutoGen only
@@ -300,14 +307,13 @@ with st.sidebar:
         
         st.markdown('<p style="color: #a0aec0; font-weight: 600; margin-top: 15px;">Subject Area</p>', unsafe_allow_html=True)
         topic = st.text_input("Enter a topic (e.g. Operating System, DBMS)", value="")
-
     
-    # Common settings
-    st.markdown('<p style="color: #a0aec0; font-weight: 600; margin-top: 15px;">Difficulty Level</p>', unsafe_allow_html=True)
-    difficulty = st.selectbox("", ["Easy", "Medium", "Hard"], index=1, label_visibility="collapsed")
-    
-    st.markdown('<p style="color: #a0aec0; font-weight: 600; margin-top: 15px;">Number of Questions</p>', unsafe_allow_html=True)
-    num_questions = st.number_input("", min_value=1, max_value=30, value=30, label_visibility="collapsed")
+        # Common settings
+        st.markdown('<p style="color: #a0aec0; font-weight: 600; margin-top: 15px;">Difficulty Level</p>', unsafe_allow_html=True)
+        difficulty = st.selectbox("", ["Easy", "Medium", "Hard"], index=1, label_visibility="collapsed")
+        
+        st.markdown('<p style="color: #a0aec0; font-weight: 600; margin-top: 15px;">Number of Questions</p>', unsafe_allow_html=True)
+        num_questions = st.number_input("", min_value=1, max_value=30, value=30, label_visibility="collapsed")
     
     # Generate quiz button
     st.markdown('<div style="margin-top: 25px;"></div>', unsafe_allow_html=True)
@@ -354,7 +360,8 @@ with content_col:
                 st.rerun()
 
     # Display quiz if generated
-    if st.session_state.quiz_generated and st.session_state.quiz_manager.questions:
+    if st.session_state.quiz_generated and st.session_state.quiz_manager.questions and not st.session_state.quiz_submitted:
+    # Show questions to answer
         st.markdown('<div class="content-card">', unsafe_allow_html=True)
         display_topic = st.session_state.quiz_manager.current_topic
         st.markdown(f'''
@@ -433,7 +440,21 @@ with content_col:
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
-            
+                # Add Save Results button
+            #st.markdown('<div class="submit-button">', unsafe_allow_html=True)
+            #if st.button("Save Results", use_container_width=True):
+            #    file_path = st.session_state.quiz_manager.save_to_csv()
+            #   if file_path:
+             #       # Provide download option for the saved CSV
+              #      with open(file_path, 'rb') as f:
+               #         st.download_button(
+                #            label="Download Results",
+                 #           data=f,
+                  #          file_name=os.path.basename(file_path),
+                   #         mime="text/csv",
+                    #        use_container_width=True
+                     #   )
+            #st.markdown('</div>', unsafe_allow_html=True)
         else:
             st.warning("No results available. Please complete the quiz first.")
         
