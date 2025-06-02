@@ -176,9 +176,6 @@ class QuizManager:
                 st.warning("No questions found matching the criteria.")
                 return [], False
 
-            # Log difficulty distribution per module
-            for module in modules:
-                st.info(f"Module {module} difficulty distribution: {questions_per_difficulty[module]}")
 
             # Verify total questions match num_questions
             if len(all_selected_questions) != num_questions:
