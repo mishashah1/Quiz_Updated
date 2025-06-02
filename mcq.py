@@ -284,7 +284,7 @@ with st.sidebar:
     question_type = "Multiple Choice"  # Default for QuanBank
     if source == "QuanBank":
         st.markdown('<p style="color: #a0aec0; font-weight: 600; margin-top: 15px;">Module</p>', unsafe_allow_html=True)
-        module1 = st.selectbox("", ["Module 1, 2, 3", "Module 4, 5"], index=0, label_visibility="collapsed")
+        module1 = st.selectbox("", ["Theory 1: Module 1, 2, 3", "Theory 2: Module 4, 5"], index=0, label_visibility="collapsed")
         if module1 == "Module 1, 2, 3":
             module = "T1"
             topic = "Modules 1-3"
