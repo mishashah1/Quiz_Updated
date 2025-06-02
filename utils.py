@@ -111,7 +111,7 @@ class QuizManager:
                     available = available[~available.index.isin(selected_indices)]
 
                     if len(available) >= target_count:
-                        sampled = available.sample(n=target_count, random_state=42)
+                        sampled = available.sample(n=target_count)
                         selected_module_questions = pd.concat([selected_module_questions, sampled])
                         selected_indices.update(sampled.index)
                     else:
@@ -128,7 +128,7 @@ class QuizManager:
                             fb_available = fb_available[~fb_available.index.isin(selected_indices)]
                             to_sample = min(len(fb_available), remaining_needed)
                             if to_sample > 0:
-                                fb_sampled = fb_available.sample(n=to_sample, random_state=42)
+                                fb_sampled = fb_available.sample(n=to_sample)
                                 selected_module_questions = pd.concat([selected_module_questions, fb_sampled])
                                 selected_indices.update(fb_sampled.index)
                                 remaining_needed -= to_sample
@@ -151,7 +151,7 @@ class QuizManager:
                             fb_available = fb_available[~fb_available.index.isin(selected_indices)]
                             to_sample = min(len(fb_available), remaining_needed)
                             if to_sample > 0:
-                                fb_sampled = fb_available.sample(n=to_sample, random_state=42)
+                                fb_sampled = fb_available.sample(n=to_sample)
                                 selected_module_questions = pd.concat([selected_module_questions, fb_sampled])
                                 selected_indices.update(fb_sampled.index)
                                 remaining_needed -= to_sample
@@ -170,7 +170,7 @@ class QuizManager:
                     questions_per_difficulty[module][diff] = count
 
             # Shuffle questions
-            all_selected_questions = all_selected_questions.sample(frac=1, random_state=42).reset_index(drop=True)
+            all_selected_questions = all_selected_questions.sample(frac=1).reset_index(drop=True)
 
             if all_selected_questions.empty:
                 st.warning("No questions found matching the criteria.")
