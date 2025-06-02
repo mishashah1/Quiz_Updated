@@ -285,10 +285,10 @@ with st.sidebar:
     if source == "QuanBank":
         st.markdown('<p style="color: #a0aec0; font-weight: 600; margin-top: 15px;">Module</p>', unsafe_allow_html=True)
         module1 = st.selectbox("", ["Theory 1: Module 1, 2, 3", "Theory 2: Module 4, 5"], index=0, label_visibility="collapsed")
-        if module1 == "Module 1, 2, 3":
+        if module1 == "Theory 1: Module 1, 2, 3":
             module = "T1"
             topic = "Modules 1-3"
-        elif module1 == "Module 4, 5":
+        elif module1 == "Theory 2: Module 4, 5":
             module = "T2"
             topic = "Modules 4-5"
 
