@@ -54,7 +54,7 @@ class QuizManager:
         quiz_str = f"{topic}_{question_type}_{difficulty}_{timestamp}"
         return hashlib.md5(quiz_str.encode()).hexdigest()[:8]
 
-    def load_QuanBank_questions(self, file_key, difficulty, num_questions):
+    def load_QuanBank_questions(self, file_key, num_questions):
         QuanBank_files = {
             'T1': ('T1.xlsx', [1, 2, 3]),
             'T2': ('T2.xlsx', [4, 5])
@@ -73,6 +73,12 @@ class QuizManager:
         try:
             df = pd.read_excel(file_path)
 
+            # Validate required columns
+            required_columns = ['MODULE', 'DIFFICULTY LEVEL', 'QUESTION TEXT', 'OPTION1', 'OPTION2', 'OPTION3', 'OPTION4', 'CORRECT ANSWER', 'TOPIC NAME']
+            if not all(col in df.columns for col in required_columns):
+                st.error(f"Missing required columns in {file_path}")
+                return [], False
+
             # Fixed question counts per module
             fixed_module_counts = {
                 1: 30,
@@ -82,78 +88,70 @@ class QuizManager:
                 5: 50
             }
 
-            # Difficulty priority based on user-selected difficulty
-            difficulty_map = {
-                'Easy': ['B', 'I', 'E'],
-                'Medium': ['I', 'E', 'B'],
-                'Hard': ['E', 'I', 'B']
-            }
-            difficulty_priority = difficulty_map.get(difficulty, ['I', 'E', 'B'])
+            # Fixed difficulty order for selection and remainders: I, E, B
+            difficulty_order = ['I', 'E', 'B']
 
             all_selected_questions = pd.DataFrame()
-            questions_per_difficulty = {}
+            questions_per_difficulty = {module: {'B': 0, 'I': 0, 'E': 0} for module in modules}
+            selected_indices = set()  # Track selected question indices to avoid duplicates
 
             for module in modules:
                 total_for_module = fixed_module_counts.get(module, 0)
-                # Target equal distribution across difficulties (B, I, E)
                 target_per_difficulty = total_for_module // 3
                 remainder = total_for_module % 3
-                # Distribute remainder based on difficulty priority
-                counts_per_difficulty = {
-                    'B': target_per_difficulty,
-                    'I': target_per_difficulty,
-                    'E': target_per_difficulty
-                }
-                # Assign remainder to highest-priority difficulties
+                counts_per_difficulty = {'B': target_per_difficulty, 'I': target_per_difficulty, 'E': target_per_difficulty}
                 for i in range(remainder):
-                    counts_per_difficulty[difficulty_priority[i]] += 1
+                    counts_per_difficulty[difficulty_order[i]] += 1
 
                 selected_module_questions = pd.DataFrame()
-                selected_indices = set()  # Track selected question indices to avoid duplicates
 
-                for diff in difficulty_priority:
+                for diff in difficulty_order:
                     target_count = counts_per_difficulty[diff]
                     available = df[(df['MODULE'] == module) & (df['DIFFICULTY LEVEL'] == diff)]
                     available = available[~available.index.isin(selected_indices)]
 
                     if len(available) >= target_count:
-                        sampled = available.sample(n=target_count)
+                        sampled = available.sample(n=target_count, random_state=42)
                         selected_module_questions = pd.concat([selected_module_questions, sampled])
                         selected_indices.update(sampled.index)
                     else:
-                        # Select all available questions for this difficulty
                         selected_module_questions = pd.concat([selected_module_questions, available])
                         selected_indices.update(available.index)
                         remaining_needed = target_count - len(available)
 
-                        # Fallback to other difficulties in priority order
-                        for fb_diff in difficulty_priority:
-                            if fb_diff == diff or remaining_needed <= 0:
-                                continue
+                        # Fallback order: I -> E -> B, E -> I -> B, B -> I -> E
+                        fallback_order = ['E', 'B'] if diff == 'I' else ['I', 'B'] if diff == 'E' else ['I', 'E']
+                        for fb_diff in fallback_order:
+                            if remaining_needed <= 0:
+                                break
                             fb_available = df[(df['MODULE'] == module) & (df['DIFFICULTY LEVEL'] == fb_diff)]
                             fb_available = fb_available[~fb_available.index.isin(selected_indices)]
                             to_sample = min(len(fb_available), remaining_needed)
                             if to_sample > 0:
-                                fb_sampled = fb_available.sample(n=to_sample)
+                                fb_sampled = fb_available.sample(n=to_sample, random_state=42)
                                 selected_module_questions = pd.concat([selected_module_questions, fb_sampled])
                                 selected_indices.update(fb_sampled.index)
                                 remaining_needed -= to_sample
 
                         if remaining_needed > 0:
-                            st.warning(f"Module {module}: Could not find enough questions for difficulty {diff}. Needed {target_count}, got {target_count - remaining_needed}.")
+                            st.warning(f"Module {module}: Needed {target_count}, got {target_count - remaining_needed} for difficulty {diff}.")
 
-                # If still not enough questions for the module, try borrowing from other modules
-                if len(selected_module_questions) < total_for_module:
-                    remaining_needed = total_for_module - len(selected_module_questions)
+                # Borrow from other modules if needed
+                remaining_needed = total_for_module - len(selected_module_questions)
+                if remaining_needed > 0:
                     for other_module in modules:
                         if other_module == module:
                             continue
-                        for fb_diff in difficulty_priority:
+                        # Check if borrowing affects other module's target
+                        other_module_count = len(all_selected_questions[all_selected_questions['MODULE'] == other_module])
+                        if other_module_count >= fixed_module_counts.get(other_module, 0):
+                            continue
+                        for fb_diff in difficulty_order:
                             fb_available = df[(df['MODULE'] == other_module) & (df['DIFFICULTY LEVEL'] == fb_diff)]
                             fb_available = fb_available[~fb_available.index.isin(selected_indices)]
                             to_sample = min(len(fb_available), remaining_needed)
                             if to_sample > 0:
-                                fb_sampled = fb_available.sample(n=to_sample)
+                                fb_sampled = fb_available.sample(n=to_sample, random_state=42)
                                 selected_module_questions = pd.concat([selected_module_questions, fb_sampled])
                                 selected_indices.update(fb_sampled.index)
                                 remaining_needed -= to_sample
@@ -166,18 +164,10 @@ class QuizManager:
 
                 all_selected_questions = pd.concat([all_selected_questions, selected_module_questions])
 
-                # Track difficulty distribution for debugging
+                # Track difficulty distribution per module
                 for diff in ['B', 'I', 'E']:
                     count = len(selected_module_questions[selected_module_questions['DIFFICULTY LEVEL'] == diff])
-                    questions_per_difficulty.setdefault(diff, 0)
-                    questions_per_difficulty[diff] += count
-
-            # Ensure exactly num_questions (100) are selected
-            if len(all_selected_questions) > num_questions:
-                all_selected_questions = all_selected_questions.sample(n=num_questions, random_state=42)
-            elif len(all_selected_questions) < num_questions:
-                st.warning(f"Only {len(all_selected_questions)} questions available out of {num_questions}. Consider using AutoGen to generate additional questions.")
-                # Optionally, fall back to AutoGen here (not implemented in this fix)
+                    questions_per_difficulty[module][diff] = count
 
             # Shuffle questions
             all_selected_questions = all_selected_questions.sample(frac=1, random_state=42).reset_index(drop=True)
@@ -186,11 +176,19 @@ class QuizManager:
                 st.warning("No questions found matching the criteria.")
                 return [], False
 
-            # Log difficulty distribution
-            st.info(f"Difficulty distribution: {questions_per_difficulty}")
+            # Log difficulty distribution per module
+            for module in modules:
+                st.info(f"Module {module} difficulty distribution: {questions_per_difficulty[module]}")
+
+            # Verify total questions match num_questions
+            if len(all_selected_questions) != num_questions:
+                st.warning(f"Selected {len(all_selected_questions)} questions, expected {num_questions}.")
 
             questions = []
             for _, row in all_selected_questions.iterrows():
+                if row['CORRECT ANSWER'].upper() not in ['A', 'B', 'C', 'D']:
+                    st.warning(f"Invalid correct answer for question: {row['QUESTION TEXT']}")
+                    continue
                 options = [row['OPTION1'], row['OPTION2'], row['OPTION3'], row['OPTION4']]
                 correct_answer = options[ord(row['CORRECT ANSWER'].lower()) - ord('a')]
                 questions.append({
@@ -207,7 +205,7 @@ class QuizManager:
         except Exception as e:
             st.error(f"Error reading QuanBank file: {e}")
             return [], False
-
+        
     def generate_questions(self, generator, topic, question_type, difficulty, num_questions, source='AutoGen', module=None):
         fallback_used = False
         self.reset_state()
@@ -217,7 +215,7 @@ class QuizManager:
         
         try:
             if source == 'QuanBank' and question_type == 'Multiple Choice':
-                questions, success = self.load_QuanBank_questions(module, difficulty, num_questions)
+                questions, success = self.load_QuanBank_questions(module, num_questions)
                 if success:
                     self.questions = questions
                 else:
@@ -357,7 +355,7 @@ class QuizManager:
 class QuestionGenerator:
     def __init__(self):
         self.llm = ChatGroq(
-            api_key=st.secrets["groq_api_key"],  # Read from Streamlit secrets, 
+            api_key=st.secrets["groq_api_key"],  # Read from Streamlit secrets,  
             model="llama-3.1-8b-instant",
             temperature=0.9
         )
